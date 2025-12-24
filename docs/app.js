@@ -378,19 +378,20 @@ async function fetchJsonSmart(url) {
 }
 
 async function fetchTextSmart(url) {
-  // 先直連（有時候會被 CORS 擋）
+  // 1) 先試直連（有時候會被 CORS 擋）
   try {
     const r = await fetch(url, { cache: "no-store" });
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
     return await r.text();
   } catch (e) {
-    // fallback：用 r.jina.ai 轉接（純前端 GitHub Pages 常見解法）
-    const proxied = `https://r.jina.ai/${url.startsWith("https://") ? "https://" : "http://"}${url.replace(/^https?:\/\//, "")}`;
-    const r2 = await fetch(proxied, { cache: "no-store" });
+    // 2) fallback：改走 AllOrigins（免 key），不要再用 r.jina.ai
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    const r2 = await fetch(proxy, { cache: "no-store" });
     if (!r2.ok) throw new Error(`proxy ${r2.status} ${r2.statusText}`);
     return await r2.text();
   }
 }
+
 
 function extractJson(txt) {
   const s = txt.indexOf("{");
