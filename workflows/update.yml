@@ -26,6 +26,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Playwright browsers
+        run: |
+          python -m playwright install chromium --with-deps
+
       - name: Update data.json
         run: |
           python scripts/update_data.py
@@ -41,3 +45,4 @@ jobs:
             git commit -m "chore: update data.json"
             git push
           fi
+
