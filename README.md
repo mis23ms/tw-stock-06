@@ -118,3 +118,96 @@ jobs:
           git add -A
           git diff --cached --quiet || (git commit -m "Update data" && git push)
 
+# 盤後一頁式台股戰報（自動更新 / 可分享網址）
+
+✅ 你只要做兩件事：  
+1) 開 GitHub Pages → 你就有網址  
+2) Actions「Update data」會每天自動更新
+
+---
+
+## ✅ 我現在可以看到什麼
+- 6 檔股票：收盤 / 漲跌 / 新聞分類 / 外資買賣超（張）
+- 富邦 MoneyDJ：ZGB 六大券商進出（用 Playwright 抓，較穩）:contentReference[oaicite:6]{index=6}
+- 富邦 MoneyDJ：ZGK_D 外資排行（日期常只有月日，需補年份 + 跨年保護）:contentReference[oaicite:7]{index=7}
+
+---
+
+## ✅ 快速開始（不用懂程式）
+### 1) 上傳到 GitHub
+把整個專案 push 到你的 repo
+
+### 2) 開 GitHub Pages（產生可分享網址）
+repo → Settings → Pages  
+- Source: Deploy from a branch  
+- Branch: main  
+- Folder: /docs  
+Save 後會得到網址：`https://<帳號>.github.io/<repo>/`
+
+### 3) 第一次手動更新（確認正常）
+repo → Actions → **Update data** → **Run workflow**
+
+---
+
+## 🟦 自動更新時間（台北時間）
+GitHub Actions 的 cron 是 **UTC**（台北=UTC+8）：
+
+| 你想要台北幾點跑 | cron 要寫成 |
+|---|---|
+| 17:20（平日） | `20 9 * * 1-5` |
+| 17:30（平日） | `30 9 * * 1-5` |
+
+> 只有差 10 分鐘，不是對錯，是你要它幾點跑。
+
+---
+
+## ✅ 必備 workflow（Update data 一定要出現 + 能自動更新）
+檔案一定要放這個路徑（放錯就看不到 Update data）：  
+✅ `.github/workflows/update.yml`  
+❌ `workflows/update.yml`（根目錄這種 GitHub Actions 不認）
+
+**.github/workflows/update.yml：**
+
+```yml
+name: Update data
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 週一到週五 17:20（台北=UTC+8）=> UTC 09:20
+    - cron: "20 9 * * 1-5"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Run updater
+        run: |
+          python scripts/update_data.py
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || (git commit -m "Update data" && git push)
